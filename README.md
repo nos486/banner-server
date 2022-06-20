@@ -1,4 +1,4 @@
-# banner
+# Banner Server
 
 ## Project setup
 ```

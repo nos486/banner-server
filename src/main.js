@@ -8,8 +8,9 @@ Vue.use(VueMousetrapPlugin)
 
 Vue.config.productionTip = false
 
-Vue.prototype.$server = null
-Vue.prototype.$socket = null
+//mixin
+import Server from "./mixins/Server";
+Vue.mixin(Server)
 
 new Vue({
   vuetify,

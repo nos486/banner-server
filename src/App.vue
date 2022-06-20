@@ -1,10 +1,21 @@
 <template>
   <v-app>
-    <div class="d-flex blue titleBar" style="height: 100%">
-      <v-btn class="noTitleBar" color="red" @click="setTitle" dark>Test</v-btn>
-      <Socket v-if="settingsData.mode === 'client'"></Socket>
-      <Settings @updated="settingsUpdate"></Settings>
+    <div class="d-flex flex-column pa-10 lighten-2" :class="server.isListening ? 'green' : 'red'" style="height: 100%;" >
+      <div class="display-3">Banner Server</div>
+      <div class="mt-5">
+        <v-textarea v-model="data.text" label="Text" filled color="black"> </v-textarea>
+      </div>
+      <v-btn elevation="0" dark class="mt-1" @click="updateClients">Update</v-btn>
+      <div class="mt-5 pa-2">
+        <div v-for="(client,index) in server.clients" :key="index">
+          {{client.ip}}
+        </div>
+      </div>
 
+<!--      <div class="d-flex justify-space-between">-->
+<!--        <div>Server Address</div>-->
+<!--        <div>{{server}}</div>-->
+<!--      </div>-->
     </div>
   </v-app>
 
@@ -12,7 +23,6 @@
 
 <script>
 
-import Socket from "@/components/Socket";
 import Settings from "@/components/Settings";
 import storage from 'electron-json-storage'
 import net from "net";
@@ -23,49 +33,24 @@ export default {
   data : ()=>{
     return {
       electronStore : null,
-      settingsData : {}
+      settingsData : {},
+      data : {}
     }
   },
   components: {
     Settings,
-    Socket
-  },
-  beforeMount() {
-    this.settingsUpdate()
   },
   mounted() {
-
-    storage.getAll(function (error, data){
-      console.log(data)
-    })
-
-    // electronStore.set('unicorn', '🦄');
-    // console.log(store.get('unicorn'));
+    this.server.start()
+  },
+  beforeDestroy() {
+    this.server.stop()
   },
   methods :{
-    setTitle(){
-      ipcRenderer.send('set-title',"test")
-    },
-    settingsUpdate(){
-      storage.get("settings", (error, data)=>{
-        this.settingsData = data
-        if(data.mode === 'server'){
-          this.setServer()
-        }else {
-          this.$socket.destroy()
-          console.log(this.$socket.readyState)
-        }
-      })
-    },
-    setServer(){
-      this.$server = net.createServer(function(socket) {
-        socket.write('Echo server\r\n');
-        socket.pipe(socket);
-      });
 
-      this.$server.listen(1337, '127.0.0.1');
-      console.log("server is up")
-    },
+    updateClients(){
+      this.server.sendToAll(this.data)
+    }
   }
 }
 </script>

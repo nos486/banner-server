@@ -16,6 +16,7 @@
     "core-js": "^3.8.3",
     "electron-json-storage": "^4.5.0",
     "electron-store": "^7.0.3",
+    "joi": "^17.6.0",
     "vue": "^2.6.14",
     "vue-mousetrap": "^1.0.5",
     "vuetify": "^2.6.0"
