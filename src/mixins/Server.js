@@ -1,8 +1,8 @@
 import net from "net";
 import Joi from "joi";
 import Response from "@/assets/Response";
-import {connect} from "@/assets/SocketMethods";
 import {validate} from "@/assets/Utils";
+import Client from "@/assets/Client";
 
 class Server {
     constructor(vue) {
@@ -43,7 +43,6 @@ class Server {
             // socket.setEncoding('utf8');
         })
 
-
         this._server.listen(1337, '0.0.0.0');
 
         console.log("server is up")
@@ -55,10 +54,20 @@ class Server {
         console.log("server stop")
     }
 
-    sendToAll(data) {
+    sendToAll({method=null,data={}}) {
         for (let client of this._clients) {
-            client.write(JSON.stringify(data));
+            client.socket.write(Response.success({
+                method,
+                result:data
+            }));
         }
+    }
+
+    sendToSocket({socket,method=null,data={}}) {
+        socket.write(Response.success({
+            method,
+            result:data
+        }));
     }
 
     get isListening() {
@@ -96,9 +105,24 @@ class Server {
 
         validate(dataSchema, data, socket)
 
+        // check client has existed
+        let client = undefined
+        if(data.method !== "connect"){
+            client = this.getClient(socket)
+            if (client === undefined){
+                socket.write(Response.error({message:"forbidden"}))
+                socket.destroy()
+                throw "forbidden"
+            }
+        }
+
         switch (data.method) {
             case "connect" :
-                connect(data.param,socket,this._clients)
+                this.connect(data.param,socket)
+                break
+            case "changeWidth" :
+                this.changeWidth(data.param,client)
+                console.log("Ddd")
                 break
             default:
                 socket.write(JSON.stringify(Response.error({message: data.method + " method is unknown"})))
@@ -106,6 +130,57 @@ class Server {
 
         }
         console.log('Server Received: ', socket, data);
+    }
+
+
+    // socket functions
+    connect(param,socket){
+        let paramSchema = Joi.object({
+            width: Joi.number().required(),
+            id: Joi.number().required(),
+        })
+        validate(paramSchema,param,socket)
+
+        this._clients.push(new Client(socket,param.width,param.id))
+        socket.write(Response.success({message:"connected successfully"}))
+        this.updateClients()
+    }
+
+
+    changeWidth(param,client){
+        let paramSchema = Joi.object({
+            width: Joi.number().required(),
+        })
+        validate(paramSchema,param,client.socket)
+        client.width = param.width
+        client.socket.write(Response.success({message:"saved"}))
+        this.updateClients()
+    }
+
+    updateClients(){
+        let transform = 0
+        for (let client of this.clients){
+            transform += client.width
+        }
+
+        let shifted = 0
+
+        this.clients.sort((a, b) => parseFloat(a.id) - parseFloat(b.id));
+
+        for (let client of this.clients){
+            shifted += client.width
+            let data = {
+                shift : shifted,
+                time : this._vue.$store.getters.settings.time,
+                text: this._vue.$store.getters.settings.text,
+                transform: transform,
+                dateTime : new Date().getTime()
+            }
+            client.socket.write(Response.success({
+                method:"setData",
+                result:data
+            }));
+        }
     }
 
 

@@ -2,15 +2,12 @@
   <v-app>
     <div class="d-flex flex-column pa-10 lighten-2" :class="server.isListening ? 'green' : 'red'" style="height: 100%;" >
       <div class="display-3">Banner Server</div>
-      <div class="mt-5">
-        <v-textarea v-model="data.text" label="Text" filled color="black"> </v-textarea>
+      <div>
+        Server IP: {{ips}}
       </div>
-      <v-btn elevation="0" dark class="mt-1" @click="updateClients">Update</v-btn>
-      <div class="mt-5 pa-2">
-        <div v-for="(client,index) in server.clients" :key="index">
-          {{client.ip}}
-        </div>
-      </div>
+
+
+      <Controller class="mt-5"></Controller>
 
 <!--      <div class="d-flex justify-space-between">-->
 <!--        <div>Server Address</div>-->
@@ -23,9 +20,10 @@
 
 <script>
 
-import Settings from "@/components/Settings";
+import Settings from "@/components/Controller";
 import storage from 'electron-json-storage'
-import net from "net";
+import ip from "ip"
+import Controller from "@/components/Controller";
 const { ipcRenderer } = require('electron')
 
 export default {
@@ -38,7 +36,13 @@ export default {
     }
   },
   components: {
+    Controller,
     Settings,
+  },
+  computed : {
+    ips : function () {
+      return ip.address()
+    }
   },
   mounted() {
     this.server.start()
@@ -48,9 +52,7 @@ export default {
   },
   methods :{
 
-    updateClients(){
-      this.server.sendToAll(this.data)
-    }
+
   }
 }
 </script>
